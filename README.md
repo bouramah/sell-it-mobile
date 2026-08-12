@@ -19,6 +19,8 @@ App React Native (Expo) pour les vendeurs, caissiers et livreurs des boutiques K
    ```
 4. Scanner le QR code avec l'app **Expo Go** (iOS/Android) sur un téléphone connecté au même réseau Wi-Fi. Aucune installation de simulateur nécessaire.
 
+**Si le téléphone n'arrive pas à joindre le backend en IP LAN** (VPN, réseau d'entreprise segmenté...), relancer avec `npx expo start --tunnel` : ça passe par un tunnel externe au lieu du Wi-Fi local, plus lent mais contourne les soucis de réseau local. Il faudra alors aussi rendre le backend joignable depuis l'extérieur (ou pointer temporairement `EXPO_PUBLIC_API_BASE` vers un backend déployé).
+
 ## Structure
 
 - `src/api/client.ts` — client HTTP (calque de `web/src/api/client.ts`), auth par Bearer token.
