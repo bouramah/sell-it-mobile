@@ -1,4 +1,4 @@
-import type { CanalCommande, ModePaiement, Role, StatutCommandeClient, TypeMouvementCaisse } from './index'
+import type { CanalCommande, ModePaiement, PalierPrix, Role, StatutCommandeClient, TypeMouvementCaisse } from './index'
 
 export interface LoginRequest {
   contact: string
@@ -37,6 +37,7 @@ export interface MouvementCaisseInput {
 export interface ArticleCommandeInput {
   produit_id: string
   quantite: number
+  palier?: PalierPrix
   prix_unitaire?: number | null
 }
 
@@ -47,6 +48,7 @@ export interface CommandeClientInput {
   mode_paiement: ModePaiement
   statut: StatutCommandeClient
   articles: ArticleCommandeInput[]
+  remise_motif?: string | null
 }
 
 export interface LivraisonInput {
@@ -56,4 +58,11 @@ export interface LivraisonInput {
   boutique_id: string
   adresse: string
   creneau: string
+}
+
+export interface RemboursementInput {
+  caisse_id: string
+  montant: number
+  mode_paiement: ModePaiement
+  operateur: string
 }

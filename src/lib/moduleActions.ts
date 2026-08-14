@@ -34,4 +34,5 @@ export const MODULE_ACTIONS = {
   STOCK_ECRITURE: 'Modifier le stock (ajout de ligne, mouvement manuel, inventaire)',
   REFERENTIELS_GESTION: 'Gérer les référentiels (villes, catégories, motifs…)',
   SECURITE_GESTION: "Consulter le journal d'audit et gérer les paramètres de sécurité",
+  REMISE_VALIDATION: 'Valider une remise au-delà du seuil',
 } as const

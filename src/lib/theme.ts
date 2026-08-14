@@ -1,23 +1,49 @@
-// Palette approximative du web (Tailwind teal/slate) pour une identité visuelle cohérente.
+// Tokens extraits du prototype de référence :
+// design/KFSTORE Mobile Interne (standalone).html — valeurs exactes (computed styles),
+// pas d'approximation. Toute nouvelle UI doit puiser dans ces tokens.
 export const colors = {
-  teal700: '#0f766e',
-  teal800: '#115e59',
-  tealBg: '#f0fdfa',
-  slate50: '#f8fafc',
-  slate100: '#f1f5f9',
-  slate200: '#e2e8f0',
-  slate300: '#cbd5e1',
-  slate400: '#94a3b8',
-  slate500: '#64748b',
-  slate600: '#475569',
-  slate900: '#0f172a',
+  // Marque
+  teal: '#00858d',
+  tealDark: '#00565d',
+  tealLight: '#d9eced', // avatar, fonds teints
+  tealBorder: '#9fdadd', // bouton outline teal
+  tealDashed: '#5caeb2', // bouton en pointillés
+
+  // Encre / texte
+  ink: '#12120f',
+  inkMuted: '#73716e',
+  inkMuted2: '#646360',
+
+  // Surfaces
+  page: '#f3f2ef',
+  card: '#ffffff',
+  cardBorder: '#e5e4e2',
+  inputBorder: '#dfdedb',
+
+  // États
+  success: '#298646',
+  successBg: '#dcf7e1',
+  warning: '#be7200',
+  warningBg: '#ffefcd',
+  danger: '#c13c3b',
+  dangerBg: '#ffe8e4',
+  dangerBorder: '#ffb4ad',
+  greenSolid: '#137738', // bouton plein (ex. confirmer réception transfert)
+
   white: '#ffffff',
-  red600: '#dc2626',
-  redBg: '#fef2f2',
-  amber500: '#f59e0b',
-  amberBg: '#fffbeb',
-  emerald600: '#059669',
-  emeraldBg: '#ecfdf5',
 }
 
 export const spacing = { xs: 4, sm: 8, md: 12, lg: 16, xl: 24 }
+
+export const radius = { card: 12, button: 10, buttonSm: 8, input: 10, pill: 999 }
+
+export const font = {
+  title: { fontSize: 16, fontWeight: '700' as const, color: colors.ink },
+  statValue: { fontSize: 18, fontWeight: '700' as const, color: colors.ink },
+  statLabel: { fontSize: 11, fontWeight: '400' as const, color: colors.inkMuted },
+  badge: { fontSize: 10.5, fontWeight: '600' as const },
+  button: { fontSize: 13.5, fontWeight: '700' as const },
+  tab: { fontSize: 10, fontWeight: '600' as const },
+  body: { fontSize: 14, fontWeight: '400' as const, color: colors.ink },
+  bodyMuted: { fontSize: 12.5, fontWeight: '400' as const, color: colors.inkMuted },
+}

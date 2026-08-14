@@ -1,16 +1,17 @@
 import { StyleSheet, Text, View } from 'react-native'
-import { colors } from '../lib/theme'
+import { colors, font } from '../lib/theme'
 
-type Tone = 'default' | 'success' | 'warning' | 'danger'
+export type BadgeTone = 'default' | 'success' | 'warning' | 'danger' | 'info'
 
-const TONE_STYLES: Record<Tone, { bg: string; fg: string }> = {
-  default: { bg: colors.slate100, fg: colors.slate600 },
-  success: { bg: colors.emeraldBg, fg: colors.emerald600 },
-  warning: { bg: colors.amberBg, fg: '#92400e' },
-  danger: { bg: colors.redBg, fg: colors.red600 },
+const TONE_STYLES: Record<BadgeTone, { bg: string; fg: string }> = {
+  default: { bg: '#eeece9', fg: colors.inkMuted2 },
+  success: { bg: colors.successBg, fg: colors.success },
+  warning: { bg: colors.warningBg, fg: colors.warning },
+  danger: { bg: colors.dangerBg, fg: colors.danger },
+  info: { bg: colors.tealLight, fg: colors.tealDark },
 }
 
-export default function Badge({ label, tone = 'default' }: { label: string; tone?: Tone }) {
+export default function Badge({ label, tone = 'default' }: { label: string; tone?: BadgeTone }) {
   const t = TONE_STYLES[tone]
   return (
     <View style={[styles.badge, { backgroundColor: t.bg }]}>
@@ -20,6 +21,6 @@ export default function Badge({ label, tone = 'default' }: { label: string; tone
 }
 
 const styles = StyleSheet.create({
-  badge: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 999, alignSelf: 'flex-start' },
-  text: { fontSize: 12, fontWeight: '600' },
+  badge: { paddingHorizontal: 9, paddingVertical: 4, borderRadius: 999, alignSelf: 'flex-start' },
+  text: { ...font.badge },
 })

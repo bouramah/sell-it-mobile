@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { api } from '../api/client'
+import { api, setUnauthorizedHandler } from '../api/client'
 import { clearToken, getToken, setToken } from './auth'
+import { desinscrirePushToken, enregistrerPushToken } from './push'
 import type { UtilisateurConnecte } from '../types/write'
 
 interface AuthContextValue {
@@ -17,11 +18,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
+    // Sur une session déjà expirée côté serveur, la requête client.ts déclenche déjà ce
+    // même handler (via setUnauthorizedHandler) — l'enregistrer tôt garantit qu'aucun 401
+    // ultérieur, à n'importe quel écran, ne laisse l'appli dans un état incohérent.
+    setUnauthorizedHandler(() => setUser(null))
     ;(async () => {
       try {
         const token = await getToken()
         if (!token) return
         setUser(await api.moi())
+        enregistrerPushToken()
       } catch {
         await clearToken().catch(() => {})
       } finally {
@@ -35,10 +41,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     await setToken(access_token)
     const me = await api.moi()
     setUser(me)
+    enregistrerPushToken()
   }
 
-  function logout() {
-    clearToken()
+  async function logout() {
+    // Le token push doit être effacé côté serveur avant qu'on efface le jeton d'accès local
+    // (l'appel a besoin d'être encore authentifié) — d'où l'ordre séquentiel ici.
+    await desinscrirePushToken()
+    await clearToken()
     setUser(null)
   }
 

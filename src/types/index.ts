@@ -12,6 +12,10 @@ export type CanalCommande = 'web' | 'mobile_client' | 'boutique'
 export type StatutCommandeClient = 'en_attente' | 'confirmee' | 'en_preparation' | 'en_livraison' | 'livree' | 'annulee'
 export type StatutLivraison = 'preparee' | 'en_cours' | 'livree' | 'echec'
 export type StatutStock = 'critique' | 'a_surveiller' | 'correct'
+export type StatutDette = 'en_cours' | 'en_retard' | 'soldee'
+export type StatutTransfert = 'demande' | 'valide' | 'en_transit' | 'recu'
+export type TiersType = 'client' | 'fournisseur'
+export type StatutValidationRemise = 'aucune' | 'en_attente' | 'validee'
 
 export interface Boutique {
   id: string
@@ -44,15 +48,34 @@ export interface PermissionLigne {
   droits: Record<Role, DroitAcces>
 }
 
+export type PalierPrix = 'detail' | 'semi_gros' | 'gros'
+
+export const PALIER_PRIX_LABELS: Record<PalierPrix, string> = {
+  detail: 'Détail',
+  semi_gros: 'Semi-gros',
+  gros: 'Gros',
+}
+
 export interface Produit {
   id: string
   nom: string
   secteur: Secteur
   categorie: string
-  prix: number
+  prix_detail: number
+  prix_semi_gros: number
+  prix_gros: number
+  seuil_semi_gros: number
+  seuil_gros: number
   unite: string
   code_barres: string
   date_peremption: string | null
+}
+
+export interface Client {
+  id: string
+  nom: string
+  contact: string
+  boutique_ids: string[]
 }
 
 export interface LigneStock {
@@ -65,6 +88,23 @@ export interface LigneStock {
   seuil_alerte: number
   statut: StatutStock
   derniere_mouvement: string
+  // Prix effectifs pour cette boutique (surcharge boutique si définie, sinon prix réseau du produit).
+  prix_detail: number
+  prix_semi_gros: number
+  prix_gros: number
+}
+
+/** Palier de prix plausible pour une quantité donnée — reste modifiable manuellement à la vente. */
+export function palierSuggere(quantite: number, produit: { seuil_semi_gros: number; seuil_gros: number }): PalierPrix {
+  if (quantite >= produit.seuil_gros) return 'gros'
+  if (quantite >= produit.seuil_semi_gros) return 'semi_gros'
+  return 'detail'
+}
+
+export function prixPourPalier(ligne: { prix_detail: number; prix_semi_gros: number; prix_gros: number }, palier: PalierPrix): number {
+  if (palier === 'gros') return ligne.prix_gros
+  if (palier === 'semi_gros') return ligne.prix_semi_gros
+  return ligne.prix_detail
 }
 
 export interface Caisse {
@@ -97,6 +137,11 @@ export interface CommandeClient {
   mode_paiement: ModePaiement
   montant: number
   statut: StatutCommandeClient
+  date_creation: string
+  remise_statut: StatutValidationRemise
+  remise_motif: string | null
+  remise_validee_par: string | null
+  remise_validee_le: string | null
 }
 
 export interface ArticleCommande {
@@ -121,6 +166,41 @@ export interface Livraison {
   creneau: string
   statut: StatutLivraison
   preuve_url: string | null
+}
+
+export interface LigneDette {
+  id: string
+  tiers_nom: string
+  boutique_id: string
+  montant_initial: number
+  solde_restant: number
+  echeance: string
+  statut: StatutDette
+}
+
+export interface TransfertStock {
+  id: string
+  produit_id: string
+  boutique_source_id: string
+  boutique_destination_id: string
+  quantite: number
+  demandeur: string
+  statut: StatutTransfert
+  quantite_recue: number | null
+  motif_ecart: string | null
+}
+
+export const STATUT_DETTE_LABELS: Record<StatutDette, string> = {
+  en_cours: 'En cours',
+  en_retard: 'En retard',
+  soldee: 'Soldée',
+}
+
+export const STATUT_TRANSFERT_LABELS: Record<StatutTransfert, string> = {
+  demande: 'Demandé',
+  valide: 'Validé',
+  en_transit: 'En transit',
+  recu: 'Reçu',
 }
 
 export const STATUT_LIVRAISON_LABELS: Record<StatutLivraison, string> = {

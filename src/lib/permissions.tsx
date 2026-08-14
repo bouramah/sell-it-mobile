@@ -39,9 +39,16 @@ function hasAccess(matrix: PermissionLigne[], role: Role | null, ...moduleAction
 export interface Permissions {
   role: Role | null
   stockLecture: boolean
+  /** Visibilité de l'onglet Caisse : vente directe OU gestion de caisse (ouverture/mouvement). */
   caisseGestion: boolean
+  venteDirecte: boolean
+  caisseOuverture: boolean
+  caisseMouvement: boolean
   commandeClient: boolean
   livraisonGestion: boolean
+  detteRemboursement: boolean
+  transfertReception: boolean
+  remiseValidation: boolean
 }
 
 export function usePermissions(): Permissions {
@@ -50,11 +57,21 @@ export function usePermissions(): Permissions {
   const role = user?.role ?? null
   const has = (...actions: string[]) => hasAccess(matrix, role, ...actions)
 
+  const venteDirecte = has(MODULE_ACTIONS.VENTE_DIRECTE)
+  const caisseOuverture = has(MODULE_ACTIONS.CAISSE_OUVERTURE)
+  const caisseMouvement = has(MODULE_ACTIONS.CAISSE_MOUVEMENT)
+
   return {
     role,
     stockLecture: true, // consultation stock non gatée par la matrice, cf. scoping boutique
-    caisseGestion: has(MODULE_ACTIONS.CAISSE_OUVERTURE, MODULE_ACTIONS.CAISSE_MOUVEMENT),
+    caisseGestion: venteDirecte || caisseOuverture || caisseMouvement,
+    venteDirecte,
+    caisseOuverture,
+    caisseMouvement,
     commandeClient: has(MODULE_ACTIONS.COMMANDE_CLIENT),
     livraisonGestion: has(MODULE_ACTIONS.LIVRAISON_GESTION),
+    detteRemboursement: has(MODULE_ACTIONS.DETTE_REMBOURSEMENT),
+    transfertReception: has(MODULE_ACTIONS.TRANSFERT_RECEPTION),
+    remiseValidation: has(MODULE_ACTIONS.REMISE_VALIDATION),
   }
 }
