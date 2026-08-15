@@ -6,8 +6,16 @@ export interface LoginRequest {
 }
 
 export interface TokenResponse {
-  access_token: string
+  // otp_requis=true : mot de passe correct mais 2FA obligatoire pour ce rôle — access_token
+  // est alors absent, il faut appeler api.verifier2FA(contact, code) pour obtenir le token.
+  otp_requis: boolean
+  access_token: string | null
   token_type: string
+}
+
+export interface Verifier2FARequest {
+  contact: string
+  code: string
 }
 
 export interface UtilisateurConnecte {

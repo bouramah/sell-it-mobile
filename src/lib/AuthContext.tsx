@@ -7,7 +7,10 @@ import type { UtilisateurConnecte } from '../types/write'
 interface AuthContextValue {
   user: UtilisateurConnecte | null
   loading: boolean
-  login: (contact: string, motDePasse: string) => Promise<void>
+  // Renvoie otpRequis=true si la 2FA est exigée pour ce compte — dans ce cas la connexion
+  // n'est pas encore effective, il faut appeler verifier2FA(contact, code) pour la terminer.
+  login: (contact: string, motDePasse: string) => Promise<{ otpRequis: boolean }>
+  verifier2FA: (contact: string, code: string) => Promise<void>
   logout: () => void
 }
 
@@ -37,7 +40,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   async function login(contact: string, motDePasse: string) {
-    const { access_token } = await api.login({ contact, mot_de_passe: motDePasse })
+    const { otp_requis, access_token } = await api.login({ contact, mot_de_passe: motDePasse })
+    if (otp_requis || !access_token) return { otpRequis: true }
+    await setToken(access_token)
+    const me = await api.moi()
+    setUser(me)
+    enregistrerPushToken()
+    return { otpRequis: false }
+  }
+
+  async function verifier2FA(contact: string, code: string) {
+    const { access_token } = await api.verifier2FA({ contact, code })
+    if (!access_token) throw new Error('Code invalide ou expiré')
     await setToken(access_token)
     const me = await api.moi()
     setUser(me)
@@ -52,7 +66,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, login, verifier2FA, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthContextValue {

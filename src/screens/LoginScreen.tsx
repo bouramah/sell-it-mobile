@@ -6,16 +6,18 @@ import TextField from '../components/TextField'
 import { useAuth } from '../lib/AuthContext'
 import { colors, spacing } from '../lib/theme'
 
-type Vue = 'connexion' | 'demande-code' | 'reinitialisation'
+type Vue = 'connexion' | 'verification-2fa' | 'demande-code' | 'reinitialisation'
 
 export default function LoginScreen() {
-  const { login } = useAuth()
+  const { login, verifier2FA } = useAuth()
   const [vue, setVue] = useState<Vue>('connexion')
 
   const [contact, setContact] = useState('')
   const [motDePasse, setMotDePasse] = useState('')
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
+
+  const [code2FA, setCode2FA] = useState('')
 
   const [resetContact, setResetContact] = useState('')
   const [resetCode, setResetCode] = useState('')
@@ -30,9 +32,26 @@ export default function LoginScreen() {
     setLoading(true)
     setError(null)
     try {
-      await login(contact, motDePasse)
+      const { otpRequis } = await login(contact, motDePasse)
+      if (otpRequis) setVue('verification-2fa')
     } catch {
       setError('Numéro ou mot de passe incorrect.')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleVerifier2FA() {
+    if (!code2FA) {
+      setError('Renseignez le code reçu par SMS.')
+      return
+    }
+    setLoading(true)
+    setError(null)
+    try {
+      await verifier2FA(contact, code2FA)
+    } catch {
+      setError('Code invalide ou expiré.')
     } finally {
       setLoading(false)
     }
@@ -112,6 +131,38 @@ export default function LoginScreen() {
             {info && <Text style={styles.info}>{info}</Text>}
             {error && <Text style={styles.error}>{error}</Text>}
             <Button label="Se connecter" onPress={handleSubmit} loading={loading} />
+          </View>
+        </>
+      )}
+
+      {vue === 'verification-2fa' && (
+        <>
+          <View style={styles.header}>
+            <Text style={styles.title}>Vérification en deux étapes</Text>
+            <Text style={styles.subtitle}>Un code de vérification vous a été envoyé par SMS au {contact}.</Text>
+          </View>
+
+          <View style={styles.form}>
+            <TextField
+              label="Code reçu par SMS"
+              value={code2FA}
+              onChangeText={setCode2FA}
+              placeholder="123456"
+              keyboardType="number-pad"
+              autoCapitalize="none"
+            />
+            {error && <Text style={styles.error}>{error}</Text>}
+            <Button label="Valider" onPress={handleVerifier2FA} loading={loading} />
+            <Pressable
+              style={styles.forgot}
+              onPress={() => {
+                setError(null)
+                setCode2FA('')
+                setVue('connexion')
+              }}
+            >
+              <Text style={styles.forgotText}>Retour à la connexion</Text>
+            </Pressable>
           </View>
         </>
       )}

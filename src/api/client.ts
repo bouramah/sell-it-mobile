@@ -9,6 +9,7 @@ import type {
   LigneMouvementCaisse,
   LigneStock,
   Livraison,
+  ParametreApplication,
   PermissionLigne,
   Produit,
   TransfertStock,
@@ -22,6 +23,7 @@ import type {
   MouvementCaisseInput,
   RemboursementInput,
   TokenResponse,
+  Verifier2FARequest,
   UtilisateurConnecte,
 } from '../types/write'
 
@@ -109,6 +111,7 @@ async function sendFile<T>(path: string, fileUri: string, fileName: string, mime
 
 export const api = {
   login: (payload: LoginRequest) => sendJson<TokenResponse>('POST', '/auth/login', payload),
+  verifier2FA: (payload: Verifier2FARequest) => sendJson<TokenResponse>('POST', '/auth/verifier-2fa', payload),
   moi: () => getJson<UtilisateurConnecte>('/auth/moi'),
   motDePasseOublie: (contact: string) => sendJson<{ message: string }>('POST', '/auth/mot-de-passe-oublie', { contact }),
   reinitialiserMotDePasse: (contact: string, code: string, nouveauMotDePasse: string) =>
@@ -118,6 +121,7 @@ export const api = {
     sendJson<{ message: string }>('PUT', '/auth/moi/mot-de-passe', { mot_de_passe_actuel: motDePasseActuel, nouveau_mot_de_passe: nouveauMotDePasse }),
 
   permissions: () => getJson<PermissionLigne[]>('/permissions'),
+  parametresApplication: () => getJson<ParametreApplication[]>('/parametres/application'),
 
   boutiques: () => getJson<Boutique[]>('/boutiques'),
   utilisateurs: (boutiqueId?: string) => getJson<Utilisateur[]>(`/utilisateurs${boutiqueId ? `?boutique_id=${boutiqueId}` : ''}`),

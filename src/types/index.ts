@@ -218,3 +218,9 @@ export const MODE_PAIEMENT_LABELS: Record<ModePaiement, string> = {
   virement: 'Virement',
   lettre_change: 'Lettre de change',
 }
+
+export interface ParametreApplication {
+  id: string
+  label: string
+  actif: boolean
+}

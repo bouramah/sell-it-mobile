@@ -4,12 +4,25 @@ import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View 
 import Badge from '../components/Badge'
 import Button from '../components/Button'
 import Card from '../components/Card'
+import OfflineBanner from '../components/OfflineBanner'
 import PickerField from '../components/PickerField'
 import Screen from '../components/Screen'
 import TextField from '../components/TextField'
-import { api } from '../api/client'
+import { ApiError, api } from '../api/client'
 import { useAuth } from '../lib/AuthContext'
 import { imprimerOuPartagerDocument } from '../lib/documents'
+import {
+  ajouterVenteEnAttente,
+  mettreEnCacheProduits,
+  mettreEnCacheStock,
+  modeHorsLigneActif,
+  produitsEnCache,
+  rafraichirModeHorsLigne,
+  stockEnCache,
+  synchroniserVentes,
+  useConnectivite,
+  ventesEnAttente,
+} from '../lib/offline'
 import { usePermissions } from '../lib/permissions'
 import { useMesBoutiques } from '../lib/useBoutiques'
 import { formatGNF } from '../lib/format'
@@ -99,21 +112,45 @@ export default function CaisseScreen() {
   const [mouvementMotif, setMouvementMotif] = useState('')
   const [mouvementMontant, setMouvementMontant] = useState('')
 
+  const [modeHorsLigne, setModeHorsLigne] = useState(false)
+  const [enAttente, setEnAttente] = useState(0)
+  const [synchronisation, setSynchronisation] = useState(false)
+  const connecte = useConnectivite()
+
   const operateur = user ? `${user.prenom} ${user.nom}` : ''
 
   const refresh = useCallback(() => {
     if (!boutiqueId) return
     setLoading(true)
     Promise.all([api.caisses(boutiqueId), api.produits(), api.stock(boutiqueId), api.clients(boutiqueId)])
-      .then(([c, p, s, cl]) => {
+      .then(async ([c, p, s, cl]) => {
         setCaisses(c)
         setProduits(p)
         setStock(s)
         setClients(cl)
         setSelectedCaisseId((current) => (current && c.some((x) => x.id === current) ? current : (c[0]?.id ?? '')))
         setLoadError(null)
+        if (await modeHorsLigneActif()) {
+          mettreEnCacheStock(boutiqueId, s)
+          mettreEnCacheProduits(p)
+        }
       })
-      .catch((e) => setLoadError(e instanceof Error && e.message ? e.message : 'Échec du chargement.'))
+      .catch(async (e) => {
+        // Hors-ligne avec le mode activé : on retombe sur la dernière photo connue du stock
+        // et des produits plutôt que de laisser l'écran vide (CDC §3.7/§6.1 — consultation
+        // du stock en mode dégradé). Les caisses et clients, eux, ne sont pas mis en cache
+        // (la vente hors-ligne réutilise juste la caisse déjà sélectionnée).
+        if (!(e instanceof ApiError) && (await modeHorsLigneActif())) {
+          const [s, p] = await Promise.all([stockEnCache(boutiqueId), produitsEnCache()])
+          if (s.length || p.length) {
+            setStock(s)
+            setProduits(p)
+            setLoadError(null)
+            return
+          }
+        }
+        setLoadError(e instanceof Error && e.message ? e.message : 'Échec du chargement.')
+      })
       .finally(() => setLoading(false))
   }, [boutiqueId])
 
@@ -122,6 +159,36 @@ export default function CaisseScreen() {
     setCart([])
     setClientId('')
   }, [boutiqueId])
+
+  useEffect(() => {
+    rafraichirModeHorsLigne().then(setModeHorsLigne)
+    ventesEnAttente().then((v) => setEnAttente(v.length))
+  }, [])
+
+  const synchroniser = useCallback(async () => {
+    setSynchronisation(true)
+    try {
+      const resultat = await synchroniserVentes()
+      setEnAttente(resultat.restantes)
+      if (resultat.synchronisees > 0) refresh()
+      if (resultat.erreur) {
+        Alert.alert(
+          'Synchronisation incomplète',
+          `${resultat.synchronisees} vente(s) synchronisée(s). ${resultat.restantes} en attente — ${resultat.erreur}`,
+        )
+      } else if (resultat.synchronisees > 0) {
+        Alert.alert('Synchronisation terminée', `${resultat.synchronisees} vente(s) hors-ligne synchronisée(s).`)
+      }
+    } finally {
+      setSynchronisation(false)
+    }
+  }, [refresh])
+
+  // Synchronisation automatique dès le retour du réseau, sans action de l'opérateur (CDC §3.7/§8).
+  useEffect(() => {
+    if (connecte && enAttente > 0) synchroniser()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connecte])
 
   const selectedCaisse = caisses.find((c) => c.id === selectedCaisseId)
 
@@ -285,16 +352,31 @@ export default function CaisseScreen() {
     setEncaissement(true)
     setError(null)
     const clientNom = clients.find((c) => c.id === clientId)?.nom ?? 'Client de passage'
+    const payload = {
+      client_nom: clientNom,
+      boutique_id: boutiqueId,
+      canal: 'boutique' as const,
+      mode_paiement: modePaiement,
+      statut: 'confirmee' as const,
+      articles: cart.map((l) => ({ produit_id: l.produit_id, quantite: l.quantite, palier: l.palier, prix_unitaire: l.prix_unitaire })),
+      remise_motif: remiseDepasseSeuil ? remiseMotif.trim() : null,
+    }
+
+    // Hors-ligne, mode activé : pas la peine d'attendre l'échec réseau, la vente est mise en
+    // attente immédiatement (CDC §3.7/§8) — jamais pour une remise à valider, qui nécessite
+    // le calcul serveur en direct sur les prix catalogue à jour.
+    if (!connecte && modeHorsLigne && !remiseDepasseSeuil) {
+      await ajouterVenteEnAttente({ caisseId: selectedCaisse.id, operateur, total, payload })
+      setEnAttente((n) => n + 1)
+      setCart([])
+      setFinalisation(false)
+      setEncaissement(false)
+      Alert.alert('Vente enregistrée hors-ligne', 'Elle sera synchronisée automatiquement au retour du réseau.')
+      return
+    }
+
     try {
-      const commande = await api.creerCommandeClient({
-        client_nom: clientNom,
-        boutique_id: boutiqueId,
-        canal: 'boutique',
-        mode_paiement: modePaiement,
-        statut: 'confirmee',
-        articles: cart.map((l) => ({ produit_id: l.produit_id, quantite: l.quantite, palier: l.palier, prix_unitaire: l.prix_unitaire })),
-        remise_motif: remiseDepasseSeuil ? remiseMotif.trim() : null,
-      })
+      const commande = await api.creerCommandeClient(payload)
       if (commande.remise_statut === 'en_attente') {
         setCart([])
         setFinalisation(false)
@@ -328,7 +410,17 @@ export default function CaisseScreen() {
         },
       ])
     } catch (e) {
-      setError(e instanceof Error && e.message ? e.message : "Échec de l'encaissement.")
+      // Coupure réseau survenue pendant l'appel (pas une erreur métier renvoyée par le
+      // serveur) : même filet de sécurité que le cas "déjà hors-ligne" ci-dessus.
+      if (!(e instanceof ApiError) && modeHorsLigne && !remiseDepasseSeuil) {
+        await ajouterVenteEnAttente({ caisseId: selectedCaisse.id, operateur, total, payload })
+        setEnAttente((n) => n + 1)
+        setCart([])
+        setFinalisation(false)
+        Alert.alert('Vente enregistrée hors-ligne', 'Connexion perdue pendant l’encaissement — la vente sera synchronisée automatiquement au retour du réseau.')
+      } else {
+        setError(e instanceof Error && e.message ? e.message : "Échec de l'encaissement.")
+      }
     } finally {
       setEncaissement(false)
     }
@@ -362,6 +454,9 @@ export default function CaisseScreen() {
         ) : undefined
       }
     >
+      {!finalisation && (
+        <OfflineBanner connecte={connecte} enAttente={enAttente} synchronisation={synchronisation} onSynchroniser={synchroniser} />
+      )}
       {finalisation ? (
         <>
           <Pressable style={styles.backRow} onPress={() => setFinalisation(false)}>
