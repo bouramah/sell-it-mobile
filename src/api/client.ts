@@ -37,9 +37,11 @@ class ApiError extends Error {
   }
 }
 
+// Distingue ce canal (appli mobile interne / staff) du back-office web dans le journal
+// d'audit — les deux tapent le même backend/mêmes routes, seul cet en-tête les différencie.
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getToken()
-  return token ? { Authorization: `Bearer ${token}` } : {}
+  return { 'X-Client-Canal': 'mobile_interne', ...(token ? { Authorization: `Bearer ${token}` } : {}) }
 }
 
 // FastAPI renvoie `detail` en string pour les erreurs métier (400/403/404/409…) mais en
