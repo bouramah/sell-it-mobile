@@ -28,9 +28,21 @@ App React Native (Expo) pour les vendeurs, caissiers et livreurs des boutiques K
 - `src/api/client.ts` — client HTTP (calque de `web/src/api/client.ts`), auth par Bearer token.
 - `src/types/` — sous-ensemble des types partagés avec le web (dupliqués, pas de package partagé).
 - `src/lib/AuthContext.tsx`, `src/lib/permissions.tsx` — auth et matrice de droits, calqués sur le web.
-- `src/screens/` — Connexion, Stock, Caisse, Commandes, Livraisons.
+- `src/lib/offline.ts` — cache local (AsyncStorage) et file d'attente des ventes en mode
+  dégradé (caisse/stock), synchronisation automatique au retour du réseau.
+- `src/screens/` — Connexion, Stock, Caisse, Commandes, Livraisons, notifications push, gestion
+  du profil.
 - `src/navigation/` — stack d'auth + bottom tabs, onglets filtrés par la matrice de droits.
 
-## Hors scope (v1)
+## Fonctionnalités notables
 
-Pas de mode hors-ligne, pas de scan code-barres — voir le plan de session pour le détail des choix.
+- **Mode hors-ligne** (caisse + consultation du stock) : bannière d'état, file d'attente locale,
+  synchronisation automatique au retour du réseau. Activable/désactivable côté back-office
+  (Sécurité → Paramètres application → "Mode hors-ligne").
+- **Notifications push** (Expo Push API) : livraison affectée, remise en attente, alertes gérant.
+- **Impression/partage de facture** (PDF) depuis le détail d'une commande.
+- Rôle **livreur** avec écrans dédiés d'affectation et de suivi de livraison.
+
+## Hors scope
+
+Pas de scan code-barres — voir le plan de session pour le détail des choix.
