@@ -151,8 +151,8 @@ export const api = {
     sendJson<LigneDette>('POST', `/dettes/${detteId}/remboursements`, payload),
 
   transferts: () => getJson<TransfertStock[]>('/transferts'),
-  modifierStatutTransfert: (id: string, statut: string, quantiteRecue?: number, motifEcart?: string) =>
-    sendJson<TransfertStock>('PUT', `/transferts/${id}/statut`, { statut, quantite_recue: quantiteRecue, motif_ecart: motifEcart }),
+  modifierStatutTransfert: (id: string, statut: string, lignes?: { produit_id: string; quantite_recue?: number; motif_ecart?: string }[]) =>
+    sendJson<TransfertStock>('PUT', `/transferts/${id}/statut`, { statut, lignes }),
 
   livraisons: (params?: { boutiqueId?: string; mine?: boolean }) => {
     const qs = new URLSearchParams()

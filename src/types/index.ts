@@ -178,16 +178,22 @@ export interface LigneDette {
   statut: StatutDette
 }
 
-export interface TransfertStock {
+export interface LigneTransfertStock {
   id: string
   produit_id: string
-  boutique_source_id: string
-  boutique_destination_id: string
+  produit_nom: string
   quantite: number
-  demandeur: string
-  statut: StatutTransfert
   quantite_recue: number | null
   motif_ecart: string | null
+}
+
+export interface TransfertStock {
+  id: string
+  boutique_source_id: string
+  boutique_destination_id: string
+  demandeur: string
+  statut: StatutTransfert
+  lignes: LigneTransfertStock[]
 }
 
 export const STATUT_DETTE_LABELS: Record<StatutDette, string> = {

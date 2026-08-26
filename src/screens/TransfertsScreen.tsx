@@ -11,29 +11,34 @@ import { api } from '../api/client'
 import { useMesBoutiques } from '../lib/useBoutiques'
 import { colors, spacing } from '../lib/theme'
 import type { BadgeTone } from '../components/Badge'
-import type { Boutique, Produit, StatutTransfert, TransfertStock } from '../types'
+import type { Boutique, StatutTransfert, TransfertStock } from '../types'
 
 const STATUT_TONE: Record<StatutTransfert, BadgeTone> = { demande: 'default', valide: 'info', en_transit: 'warning', recu: 'success' }
 const STATUT_LABEL: Record<StatutTransfert, string> = { demande: 'Demandé', valide: 'Validé', en_transit: 'En transit', recu: 'Reçu' }
 
+interface LigneReceptionForm {
+  produit_id: string
+  produit_nom: string
+  quantite: number
+  quantite_recue: string
+  motif_ecart: string
+}
+
 export default function TransfertsScreen() {
   const { boutiqueId, boutiques, setBoutiqueId } = useMesBoutiques()
   const [transferts, setTransferts] = useState<TransfertStock[]>([])
-  const [produits, setProduits] = useState<Produit[]>([])
   const [loading, setLoading] = useState(false)
   const [confirmingId, setConfirmingId] = useState<string | null>(null)
   const [receptionOuverte, setReceptionOuverte] = useState<string | null>(null)
-  const [quantiteRecue, setQuantiteRecue] = useState('')
-  const [motifEcart, setMotifEcart] = useState('')
+  const [lignesReception, setLignesReception] = useState<LigneReceptionForm[]>([])
   const [error, setError] = useState<string | null>(null)
   const [loadError, setLoadError] = useState<string | null>(null)
 
   const refresh = useCallback(() => {
     setLoading(true)
-    Promise.all([api.transferts(), api.produits()])
-      .then(([t, p]) => {
+    api.transferts()
+      .then((t) => {
         setTransferts(t.filter((x) => x.boutique_destination_id === boutiqueId))
-        setProduits(p)
         setLoadError(null)
       })
       .catch((e) => setLoadError(e instanceof Error && e.message ? e.message : 'Échec du chargement.'))
@@ -45,38 +50,43 @@ export default function TransfertsScreen() {
   function nomBoutique(id: string) {
     return boutiques.find((b: Boutique) => b.id === id)?.nom ?? id
   }
-  function nomProduit(id: string) {
-    return produits.find((p) => p.id === id)?.nom ?? id
-  }
 
   function ouvrirReception(t: TransfertStock) {
     setReceptionOuverte(t.id)
-    setQuantiteRecue(String(t.quantite))
-    setMotifEcart('')
+    setLignesReception(t.lignes.map((l) => ({ produit_id: l.produit_id, produit_nom: l.produit_nom, quantite: l.quantite, quantite_recue: String(l.quantite), motif_ecart: '' })))
     setError(null)
   }
 
+  function updateLigneReception(produitId: string, patch: Partial<LigneReceptionForm>) {
+    setLignesReception((ls) => ls.map((l) => (l.produit_id === produitId ? { ...l, ...patch } : l)))
+  }
+
   async function confirmerReception(t: TransfertStock) {
-    const recue = Number(quantiteRecue)
-    if (!Number.isFinite(recue) || recue < 0 || recue > t.quantite) {
-      setError(`La quantité reçue doit être comprise entre 0 et ${t.quantite}.`)
-      return
-    }
-    if (recue < t.quantite && !motifEcart.trim()) {
-      setError('Motif obligatoire : indiquez la raison de l\'écart (casse, perte…).')
-      return
+    for (const l of lignesReception) {
+      const recue = Number(l.quantite_recue)
+      if (!Number.isFinite(recue) || recue < 0 || recue > l.quantite) {
+        setError(`Quantité reçue invalide pour ${l.produit_nom} (entre 0 et ${l.quantite}).`)
+        return
+      }
+      if (recue < l.quantite && !l.motif_ecart.trim()) {
+        setError(`Motif obligatoire pour ${l.produit_nom} : indiquez la raison de l'écart (casse, perte…).`)
+        return
+      }
     }
     setConfirmingId(t.id)
     setError(null)
     try {
-      await api.modifierStatutTransfert(t.id, 'recu', recue, motifEcart.trim() || undefined)
+      const lignesPayload = lignesReception.map((l) => ({
+        produit_id: l.produit_id, quantite_recue: Number(l.quantite_recue), motif_ecart: l.motif_ecart.trim() || undefined,
+      }))
+      await api.modifierStatutTransfert(t.id, 'recu', lignesPayload)
       setReceptionOuverte(null)
       refresh()
-      if (recue < t.quantite) {
-        Alert.alert('Transfert réceptionné — écart signalé', `${recue}/${t.quantite} reçus. L'écart a été enregistré.`)
-      } else {
-        Alert.alert('Transfert réceptionné', `${recue} unité(s) ajoutée(s) au stock.`)
-      }
+      const ecart = lignesPayload.some((l) => l.quantite_recue < (lignesReception.find((r) => r.produit_id === l.produit_id)?.quantite ?? 0))
+      Alert.alert(
+        ecart ? 'Transfert réceptionné — écart signalé' : 'Transfert réceptionné',
+        ecart ? "Un écart a été enregistré sur au moins un produit." : 'Le stock a été mis à jour.',
+      )
     } catch (e) {
       setError(e instanceof Error && e.message ? e.message : "Échec de l'enregistrement.")
     } finally {
@@ -97,25 +107,40 @@ export default function TransfertsScreen() {
               <View style={styles.iconWrap}>
                 <Ionicons name="cube-outline" size={16} color={colors.tealDark} />
               </View>
-              <Text style={styles.nom}>{nomProduit(t.produit_id)}</Text>
+              <Text style={styles.nom}>{t.lignes.length} produit{t.lignes.length > 1 ? 's' : ''}</Text>
             </View>
             <Badge label={STATUT_LABEL[t.statut]} tone={STATUT_TONE[t.statut]} />
           </View>
+          <Text style={styles.meta}>{t.lignes.map((l) => `${l.quantite} x ${l.produit_nom}`).join(', ')}</Text>
           <View style={styles.routeRow}>
             <Text style={styles.meta}>{nomBoutique(t.boutique_source_id)}</Text>
             <Ionicons name="arrow-forward" size={13} color={colors.inkMuted} />
             <Text style={styles.meta}>{nomBoutique(t.boutique_destination_id)}</Text>
-            <Text style={styles.meta}>· Qté {t.quantite}</Text>
           </View>
           {t.statut === 'en_transit' && receptionOuverte !== t.id && (
             <Button label="Confirmer la réception" variant="success" icon="checkmark-circle" onPress={() => ouvrirReception(t)} />
           )}
           {receptionOuverte === t.id && (
             <View style={styles.receptionForm}>
-              <TextField label={`Quantité réellement reçue (sur ${t.quantite})`} value={quantiteRecue} onChangeText={setQuantiteRecue} keyboardType="numeric" />
-              {Number(quantiteRecue) < t.quantite && (
-                <TextField label="Motif de l'écart (casse, perte…)" value={motifEcart} onChangeText={setMotifEcart} placeholder="Ex : 2 unités cassées pendant le transport" />
-              )}
+              {lignesReception.map((l) => (
+                <View key={l.produit_id} style={styles.ligneReception}>
+                  <Text style={styles.nom}>{l.produit_nom}</Text>
+                  <TextField
+                    label={`Quantité réellement reçue (sur ${l.quantite})`}
+                    value={l.quantite_recue}
+                    onChangeText={(v) => updateLigneReception(l.produit_id, { quantite_recue: v })}
+                    keyboardType="numeric"
+                  />
+                  {Number(l.quantite_recue) < l.quantite && (
+                    <TextField
+                      label="Motif de l'écart (casse, perte…)"
+                      value={l.motif_ecart}
+                      onChangeText={(v) => updateLigneReception(l.produit_id, { motif_ecart: v })}
+                      placeholder="Ex : 2 unités cassées pendant le transport"
+                    />
+                  )}
+                </View>
+              ))}
               {error && <Text style={styles.error}>{error}</Text>}
               <View style={styles.actionsRow}>
                 <View style={styles.actionFlex}>
@@ -145,6 +170,7 @@ const styles = StyleSheet.create({
   meta: { fontSize: 12.5, color: colors.inkMuted },
   empty: { textAlign: 'center', color: colors.inkMuted, marginTop: spacing.xl },
   receptionForm: { gap: spacing.sm, marginTop: spacing.xs },
+  ligneReception: { gap: spacing.xs, paddingBottom: spacing.xs, borderBottomWidth: 1, borderBottomColor: colors.cardBorder },
   error: { color: colors.danger, fontSize: 13 },
   actionsRow: { flexDirection: 'row', gap: spacing.sm },
   actionFlex: { flex: 1 },
