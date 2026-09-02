@@ -106,7 +106,7 @@ export default function LoginScreen() {
 
   return (
     <KeyboardAvoidingView style={styles.container} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-      <Image source={require('../../assets/logo.jpeg')} style={styles.logo} resizeMode="contain" />
+      <Image source={require('../../assets/logo-transparent.png')} style={styles.logo} resizeMode="contain" />
 
       {vue === 'connexion' && (
         <>

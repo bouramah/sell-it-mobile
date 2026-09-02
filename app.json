@@ -1,13 +1,14 @@
 {
   "expo": {
-    "name": "mobile",
+    "name": "KFSTORE Agent",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.groupeskf.kfstore.agent"
     },
     "android": {
       "adaptiveIcon": {
@@ -24,7 +25,16 @@
     "plugins": [
       "expo-secure-store",
       "expo-sharing",
-      "expo-notifications"
+      "expo-notifications",
+      [
+        "expo-splash-screen",
+        {
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 200,
+          "resizeMode": "contain",
+          "backgroundColor": "#f3f2ef"
+        }
+      ]
     ]
   }
 }

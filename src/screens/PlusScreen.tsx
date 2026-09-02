@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useRoute } from '@react-navigation/native'
 import { useEffect, useState } from 'react'
-import { Alert, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import ListRow from '../components/ListRow'
 import Screen from '../components/Screen'
@@ -52,6 +52,12 @@ export default function PlusScreen() {
           <ListRow title="Transferts de stock" subtitle="Réception des transferts entrants" icon="swap-horizontal-outline" onPress={() => setView('transferts')} />
         )}
         <ListRow title="Livraisons" subtitle="Suivi des tournées en cours" icon="bicycle-outline" onPress={() => setView('livraisons')} />
+        <ListRow
+          title="Conditions d'utilisation"
+          subtitle="Confidentialité et mentions légales"
+          icon="document-text-outline"
+          onPress={() => Linking.openURL('https://admin.kfstore-gn.com/legal')}
+        />
         <ListRow title="Déconnexion" subtitle="Fermer la session" icon="log-out-outline" onPress={confirmerDeconnexion} danger />
       </Screen>
     )
