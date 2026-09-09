@@ -11,6 +11,7 @@ interface AuthContextValue {
   // n'est pas encore effective, il faut appeler verifier2FA(contact, code) pour la terminer.
   login: (contact: string, motDePasse: string) => Promise<{ otpRequis: boolean }>
   verifier2FA: (contact: string, code: string) => Promise<void>
+  refreshProfil: () => Promise<void>
   logout: () => void
 }
 
@@ -58,6 +59,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     enregistrerPushToken()
   }
 
+  async function refreshProfil() {
+    setUser(await api.moi())
+  }
+
   async function logout() {
     // Le token push doit être effacé côté serveur avant qu'on efface le jeton d'accès local
     // (l'appel a besoin d'être encore authentifié) — d'où l'ordre séquentiel ici.
@@ -66,7 +71,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
   }
 
-  return <AuthContext.Provider value={{ user, loading, login, verifier2FA, logout }}>{children}</AuthContext.Provider>
+  return <AuthContext.Provider value={{ user, loading, login, verifier2FA, refreshProfil, logout }}>{children}</AuthContext.Provider>
 }
 
 export function useAuth(): AuthContextValue {

@@ -61,9 +61,13 @@ export default function Header({ title }: { title: string }) {
   )
 }
 
+type Vue = 'menu' | 'infos' | 'mot-de-passe'
+
 function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => void }) {
-  const { user } = useAuth()
-  const [changingPassword, setChangingPassword] = useState(false)
+  const { user, refreshProfil, logout } = useAuth()
+  const [vue, setVue] = useState<Vue>('menu')
+  const [nom, setNom] = useState(user?.nom ?? '')
+  const [prenom, setPrenom] = useState(user?.prenom ?? '')
   const [actuel, setActuel] = useState('')
   const [nouveau, setNouveau] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -73,7 +77,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
   const [suppressionDemandee, setSuppressionDemandee] = useState(false)
 
   function reset() {
-    setChangingPassword(false)
+    setVue('menu')
     setActuel('')
     setNouveau('')
     setConfirmation('')
@@ -104,12 +108,38 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
       setActuel('')
       setNouveau('')
       setConfirmation('')
-      setChangingPassword(false)
+      setVue('menu')
     } catch (e) {
       setError(e instanceof Error && e.message ? e.message : 'Échec de la modification.')
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleEnregistrerInfos() {
+    if (!nom.trim() || !prenom.trim()) {
+      setError('Nom et prénom sont obligatoires.')
+      return
+    }
+    setSaving(true)
+    setError(null)
+    try {
+      await api.modifierProfil({ nom: nom.trim(), prenom: prenom.trim() })
+      await refreshProfil()
+      setSuccess(true)
+      setVue('menu')
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : 'Échec de la mise à jour.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  function confirmerDeconnexion() {
+    Alert.alert('Déconnexion', 'Voulez-vous vraiment fermer la session ?', [
+      { text: 'Annuler', style: 'cancel' },
+      { text: 'Déconnexion', style: 'destructive', onPress: () => { handleClose(); logout() } },
+    ])
   }
 
   async function handleDemanderSuppression() {
@@ -146,11 +176,43 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
             </View>
           </View>
 
-          {success && <Text style={styles.success}>Mot de passe modifié avec succès.</Text>}
+          {success && <Text style={styles.success}>Modifications enregistrées avec succès.</Text>}
 
-          {!changingPassword ? (
-            <Button label="Changer le mot de passe" variant="outline" icon="key-outline" onPress={() => { setSuccess(false); setChangingPassword(true) }} />
-          ) : (
+          {vue === 'menu' && (
+            <View style={styles.form}>
+              <Button
+                label="Modifier mes informations"
+                variant="outline"
+                icon="person-outline"
+                onPress={() => { setSuccess(false); setNom(user?.nom ?? ''); setPrenom(user?.prenom ?? ''); setVue('infos') }}
+              />
+              <Button
+                label="Changer le mot de passe"
+                variant="outline"
+                icon="key-outline"
+                onPress={() => { setSuccess(false); setVue('mot-de-passe') }}
+              />
+              <Button label="Se déconnecter" variant="outline" icon="log-out-outline" onPress={confirmerDeconnexion} />
+            </View>
+          )}
+
+          {vue === 'infos' && (
+            <View style={styles.form}>
+              <TextField label="Prénom" value={prenom} onChangeText={setPrenom} />
+              <TextField label="Nom" value={nom} onChangeText={setNom} />
+              {error && <Text style={styles.error}>{error}</Text>}
+              <View style={styles.formActions}>
+                <View style={{ flex: 1 }}>
+                  <Button label="Annuler" variant="outline" onPress={() => { setVue('menu'); setError(null) }} />
+                </View>
+                <View style={{ flex: 1 }}>
+                  <Button label="Enregistrer" onPress={handleEnregistrerInfos} loading={saving} />
+                </View>
+              </View>
+            </View>
+          )}
+
+          {vue === 'mot-de-passe' && (
             <View style={styles.form}>
               <TextField label="Mot de passe actuel" value={actuel} onChangeText={setActuel} secureTextEntry autoCapitalize="none" />
               <TextField label="Nouveau mot de passe" value={nouveau} onChangeText={setNouveau} secureTextEntry autoCapitalize="none" />
@@ -158,7 +220,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
               {error && <Text style={styles.error}>{error}</Text>}
               <View style={styles.formActions}>
                 <View style={{ flex: 1 }}>
-                  <Button label="Annuler" variant="outline" onPress={() => { setChangingPassword(false); setError(null) }} />
+                  <Button label="Annuler" variant="outline" onPress={() => { setVue('menu'); setError(null) }} />
                 </View>
                 <View style={{ flex: 1 }}>
                   <Button label="Enregistrer" onPress={handleSubmit} loading={saving} />
@@ -167,7 +229,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
             </View>
           )}
 
-          {!changingPassword && (
+          {vue === 'menu' && (
             <View style={styles.suppressionBlock}>
               {suppressionDemandee ? (
                 <Text style={styles.success}>Demande envoyée — un administrateur va vérifier et désactiver votre compte.</Text>
