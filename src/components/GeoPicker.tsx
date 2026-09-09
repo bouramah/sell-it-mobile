@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
-import { View } from 'react-native'
+import { ActivityIndicator, Text, View } from 'react-native'
 import { api } from '../api/client'
 import type { Commune, QuartierGeo, Region, SecteurGeo, Ville } from '../types'
-import { spacing } from '../lib/theme'
+import { colors, spacing } from '../lib/theme'
 import PickerField from './PickerField'
 
 interface GeoPickerProps {
@@ -62,6 +62,15 @@ export default function GeoPicker({ value, onChange }: GeoPickerProps) {
   const communesFiltrees = useMemo(() => communes.filter((c) => c.ville_id === villeId), [communes, villeId])
   const quartiersFiltres = useMemo(() => quartiers.filter((q) => q.commune_id === communeId), [quartiers, communeId])
   const secteursFiltres = useMemo(() => secteurs.filter((s) => s.quartier_id === quartierId), [secteurs, quartierId])
+
+  if (!loaded) {
+    return (
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.sm }}>
+        <ActivityIndicator color={colors.teal} />
+        <Text style={{ color: colors.inkMuted, fontSize: 13 }}>Chargement des localisations…</Text>
+      </View>
+    )
+  }
 
   return (
     <View style={{ gap: spacing.sm }}>
