@@ -3,6 +3,7 @@ import type {
   Boutique,
   Caisse,
   Client,
+  Commune,
   CommandeClient,
   CommandeClientDetail,
   LigneDette,
@@ -12,8 +13,12 @@ import type {
   ParametreApplication,
   PermissionLigne,
   Produit,
+  QuartierGeo,
+  Region,
+  SecteurGeo,
   TransfertStock,
   Utilisateur,
+  Ville,
 } from '../types'
 import type {
   CaisseInput,
@@ -115,7 +120,13 @@ export const api = {
   login: (payload: LoginRequest) => sendJson<TokenResponse>('POST', '/auth/login', payload),
   verifier2FA: (payload: Verifier2FARequest) => sendJson<TokenResponse>('POST', '/auth/verifier-2fa', payload),
   moi: () => getJson<UtilisateurConnecte>('/auth/moi'),
-  modifierProfil: (payload: { nom: string; prenom: string }) => sendJson<UtilisateurConnecte>('PUT', '/auth/moi', payload),
+  modifierProfil: (payload: { nom: string; prenom: string; secteur_geo_id: string | null }) =>
+    sendJson<UtilisateurConnecte>('PUT', '/auth/moi', payload),
+  regions: () => getJson<Region[]>('/regions'),
+  villes: () => getJson<Ville[]>('/villes'),
+  communes: () => getJson<Commune[]>('/communes'),
+  quartiersGeo: () => getJson<QuartierGeo[]>('/quartiers-geo'),
+  secteursGeo: () => getJson<SecteurGeo[]>('/secteurs-geo'),
   motDePasseOublie: (contact: string) => sendJson<{ message: string }>('POST', '/auth/mot-de-passe-oublie', { contact }),
   reinitialiserMotDePasse: (contact: string, code: string, nouveauMotDePasse: string) =>
     sendJson<{ message: string }>('POST', '/auth/reinitialiser-mot-de-passe', { contact, code, nouveau_mot_de_passe: nouveauMotDePasse }),

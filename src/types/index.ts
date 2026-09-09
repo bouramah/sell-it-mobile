@@ -43,6 +43,35 @@ export interface Utilisateur {
   derniere_connexion: string | null
 }
 
+export interface Region {
+  id: string
+  nom: string
+}
+
+export interface Ville {
+  id: string
+  nom: string
+  region_id: string
+}
+
+export interface Commune {
+  id: string
+  nom: string
+  ville_id: string
+}
+
+export interface QuartierGeo {
+  id: string
+  nom: string
+  commune_id: string
+}
+
+export interface SecteurGeo {
+  id: string
+  nom: string
+  quartier_id: string
+}
+
 export interface PermissionLigne {
   module_action: string
   droits: Record<Role, DroitAcces>

@@ -25,6 +25,7 @@ export interface UtilisateurConnecte {
   contact: string
   role: Role
   boutique_ids: string[]
+  secteur_geo_id: string | null
 }
 
 export interface CaisseInput {

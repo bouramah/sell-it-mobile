@@ -1,11 +1,12 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { api } from '../api/client'
 import { useAuth } from '../lib/AuthContext'
 import { useMesBoutiques } from '../lib/useBoutiques'
 import { colors, font, radius, spacing } from '../lib/theme'
 import Button from './Button'
+import GeoPicker from './GeoPicker'
 import TextField from './TextField'
 
 function initiales(prenom?: string, nom?: string) {
@@ -68,6 +69,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
   const [vue, setVue] = useState<Vue>('menu')
   const [nom, setNom] = useState(user?.nom ?? '')
   const [prenom, setPrenom] = useState(user?.prenom ?? '')
+  const [secteurGeoId, setSecteurGeoId] = useState<string | null>(user?.secteur_geo_id ?? null)
   const [actuel, setActuel] = useState('')
   const [nouveau, setNouveau] = useState('')
   const [confirmation, setConfirmation] = useState('')
@@ -121,10 +123,14 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
       setError('Nom et prénom sont obligatoires.')
       return
     }
+    if (user?.role === 'livreur' && !secteurGeoId) {
+      setError('Le secteur est obligatoire pour un livreur.')
+      return
+    }
     setSaving(true)
     setError(null)
     try {
-      await api.modifierProfil({ nom: nom.trim(), prenom: prenom.trim() })
+      await api.modifierProfil({ nom: nom.trim(), prenom: prenom.trim(), secteur_geo_id: secteurGeoId })
       await refreshProfil()
       setSuccess(true)
       setVue('menu')
@@ -166,6 +172,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
       <Pressable style={styles.backdrop} onPress={handleClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+        <ScrollView keyboardShouldPersistTaps="handled">
           <View style={styles.profileHeader}>
             <View style={styles.profileAvatar}>
               <Text style={styles.profileAvatarText}>{initiales(user?.prenom, user?.nom)}</Text>
@@ -184,7 +191,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
                 label="Modifier mes informations"
                 variant="outline"
                 icon="person-outline"
-                onPress={() => { setSuccess(false); setNom(user?.nom ?? ''); setPrenom(user?.prenom ?? ''); setVue('infos') }}
+                onPress={() => { setSuccess(false); setNom(user?.nom ?? ''); setPrenom(user?.prenom ?? ''); setSecteurGeoId(user?.secteur_geo_id ?? null); setVue('infos') }}
               />
               <Button
                 label="Changer le mot de passe"
@@ -200,6 +207,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
             <View style={styles.form}>
               <TextField label="Prénom" value={prenom} onChangeText={setPrenom} />
               <TextField label="Nom" value={nom} onChangeText={setNom} />
+              <GeoPicker value={secteurGeoId} onChange={setSecteurGeoId} />
               {error && <Text style={styles.error}>{error}</Text>}
               <View style={styles.formActions}>
                 <View style={{ flex: 1 }}>
@@ -238,6 +246,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
               )}
             </View>
           )}
+        </ScrollView>
         </Pressable>
       </Pressable>
     </Modal>
