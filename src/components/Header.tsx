@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
+import { Alert, FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native'
 import { api } from '../api/client'
 import { useAuth } from '../lib/AuthContext'
 import { useMesBoutiques } from '../lib/useBoutiques'
@@ -70,6 +70,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [suppressionDemandee, setSuppressionDemandee] = useState(false)
 
   function reset() {
     setChangingPassword(false)
@@ -78,6 +79,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
     setConfirmation('')
     setError(null)
     setSuccess(false)
+    setSuppressionDemandee(false)
   }
 
   function handleClose() {
@@ -108,6 +110,26 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
     } finally {
       setSaving(false)
     }
+  }
+
+  async function handleDemanderSuppression() {
+    try {
+      await api.demanderSuppressionCompte()
+      setSuppressionDemandee(true)
+    } catch (e) {
+      setError(e instanceof Error && e.message ? e.message : "Échec de l'envoi de la demande.")
+    }
+  }
+
+  function confirmerDemandeSuppression() {
+    Alert.alert(
+      'Supprimer mon compte',
+      "Votre demande sera transmise à un administrateur, qui désactivera votre compte après vérification (pour ne pas interrompre une opération en cours).",
+      [
+        { text: 'Annuler', style: 'cancel' },
+        { text: 'Envoyer la demande', style: 'destructive', onPress: handleDemanderSuppression },
+      ]
+    )
   }
 
   return (
@@ -144,6 +166,16 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
               </View>
             </View>
           )}
+
+          {!changingPassword && (
+            <View style={styles.suppressionBlock}>
+              {suppressionDemandee ? (
+                <Text style={styles.success}>Demande envoyée — un administrateur va vérifier et désactiver votre compte.</Text>
+              ) : (
+                <Button label="Supprimer mon compte" variant="outlineDanger" icon="trash-outline" onPress={confirmerDemandeSuppression} />
+              )}
+            </View>
+          )}
         </Pressable>
       </Pressable>
     </Modal>
@@ -174,4 +206,5 @@ const styles = StyleSheet.create({
   formActions: { flexDirection: 'row', gap: spacing.sm, marginTop: spacing.xs },
   error: { color: colors.danger, fontSize: 13 },
   success: { color: colors.tealDark, fontSize: 13, marginBottom: spacing.sm },
+  suppressionBlock: { marginTop: spacing.md },
 })

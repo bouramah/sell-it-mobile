@@ -121,6 +121,7 @@ export const api = {
   enregistrerPushToken: (pushToken: string | null) => sendJson<{ message: string }>('PUT', '/auth/moi/push-token', { push_token: pushToken }),
   changerMotDePasse: (motDePasseActuel: string, nouveauMotDePasse: string) =>
     sendJson<{ message: string }>('PUT', '/auth/moi/mot-de-passe', { mot_de_passe_actuel: motDePasseActuel, nouveau_mot_de_passe: nouveauMotDePasse }),
+  demanderSuppressionCompte: () => sendJson<{ message: string }>('POST', '/auth/moi/demander-suppression'),
 
   permissions: () => getJson<PermissionLigne[]>('/permissions'),
   parametresApplication: () => getJson<ParametreApplication[]>('/parametres/application'),
