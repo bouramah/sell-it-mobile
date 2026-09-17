@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { FlatList, Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
+import { FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native'
 import { colors, radius, spacing } from '../lib/theme'
 
 export interface PickerOption {
@@ -37,39 +37,42 @@ export default function PickerField({ label, value, onChange, options, placehold
       </Pressable>
 
       <Modal visible={open} animationType="slide" transparent onRequestClose={() => setOpen(false)}>
-        <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
-          <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.sheetTitle}>{label}</Text>
-            {searchable && (
-              <TextInput
-                value={query}
-                onChangeText={setQuery}
-                placeholder="Rechercher…"
-                placeholderTextColor={colors.inkMuted}
-                style={styles.search}
-                autoFocus
-              />
-            )}
-            <FlatList
-              data={filtered}
-              keyExtractor={(item) => item.value}
-              style={styles.list}
-              renderItem={({ item }) => (
-                <Pressable
-                  style={[styles.option, item.value === value && styles.optionSelected]}
-                  onPress={() => {
-                    onChange(item.value)
-                    setQuery('')
-                    setOpen(false)
-                  }}
-                >
-                  <Text style={[styles.optionText, item.value === value && styles.optionTextSelected]}>{item.label}</Text>
-                </Pressable>
+        <KeyboardAvoidingView style={styles.backdropWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+          <Pressable style={styles.backdrop} onPress={() => setOpen(false)}>
+            <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
+              <Text style={styles.sheetTitle}>{label}</Text>
+              {searchable && (
+                <TextInput
+                  value={query}
+                  onChangeText={setQuery}
+                  placeholder="Rechercher…"
+                  placeholderTextColor={colors.inkMuted}
+                  style={styles.search}
+                  autoFocus
+                />
               )}
-              ListEmptyComponent={<Text style={styles.empty}>Aucun résultat.</Text>}
-            />
+              <FlatList
+                data={filtered}
+                keyExtractor={(item) => item.value}
+                style={styles.list}
+                keyboardShouldPersistTaps="handled"
+                renderItem={({ item }) => (
+                  <Pressable
+                    style={[styles.option, item.value === value && styles.optionSelected]}
+                    onPress={() => {
+                      onChange(item.value)
+                      setQuery('')
+                      setOpen(false)
+                    }}
+                  >
+                    <Text style={[styles.optionText, item.value === value && styles.optionTextSelected]}>{item.label}</Text>
+                  </Pressable>
+                )}
+                ListEmptyComponent={<Text style={styles.empty}>Aucun résultat.</Text>}
+              />
+            </Pressable>
           </Pressable>
-        </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </View>
   )
@@ -93,6 +96,7 @@ const styles = StyleSheet.create({
   value: { fontSize: 15, color: colors.ink },
   placeholder: { fontSize: 15, color: colors.inkMuted },
   valueText: { flex: 1 },
+  backdropWrap: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'flex-end' },
   sheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, padding: spacing.lg, maxHeight: '75%' },
   sheetTitle: { fontSize: 16, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm },

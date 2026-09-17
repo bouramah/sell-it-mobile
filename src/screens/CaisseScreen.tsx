@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useCallback, useEffect, useState } from 'react'
-import { Alert, Modal, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
+import { Alert, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native'
 import Badge from '../components/Badge'
 import Button from '../components/Button'
 import Card from '../components/Card'
@@ -661,9 +661,10 @@ export default function CaisseScreen() {
         animationType="slide"
         onRequestClose={() => { setOpeningCaisse(false); setClosingCaisse(false); setMouvementOuvert(false) }}
       >
+        <KeyboardAvoidingView style={styles.modalBackdropWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <Pressable style={styles.modalBackdrop} onPress={() => { setOpeningCaisse(false); setClosingCaisse(false); setMouvementOuvert(false); setModalError(null) }}>
           <Pressable style={styles.modalSheet} onPress={(e) => e.stopPropagation()}>
-            <ScrollView contentContainerStyle={styles.modalBody}>
+            <ScrollView contentContainerStyle={styles.modalBody} keyboardShouldPersistTaps="handled">
               {openingCaisse && (
                 <>
                   <Text style={styles.modalTitle}>Ouvrir une caisse</Text>
@@ -707,6 +708,7 @@ export default function CaisseScreen() {
             </ScrollView>
           </Pressable>
         </Pressable>
+        </KeyboardAvoidingView>
       </Modal>
     </Screen>
   )
@@ -766,6 +768,7 @@ const styles = StyleSheet.create({
   recap: { gap: 4, borderTopWidth: 1, borderTopColor: colors.cardBorder, paddingTop: spacing.sm },
   recapRow: { flexDirection: 'row', justifyContent: 'space-between' },
   recapText: { fontSize: 13, color: colors.inkMuted },
+  modalBackdropWrap: { flex: 1 },
   modalBackdrop: { flex: 1, backgroundColor: 'rgba(15,23,42,0.4)', justifyContent: 'flex-end' },
   modalSheet: { backgroundColor: colors.card, borderTopLeftRadius: 16, borderTopRightRadius: 16, maxHeight: '85%' },
   modalBody: { padding: spacing.lg, gap: spacing.md },

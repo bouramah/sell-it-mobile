@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons'
 import { useState } from 'react'
-import { Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
+import { Alert, FlatList, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native'
 import { api } from '../api/client'
 import { useAuth } from '../lib/AuthContext'
 import { useMesBoutiques } from '../lib/useBoutiques'
@@ -170,6 +170,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
 
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={handleClose}>
+      <KeyboardAvoidingView style={styles.backdropWrap} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
       <Pressable style={styles.backdrop} onPress={handleClose}>
         <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
         <ScrollView keyboardShouldPersistTaps="handled">
@@ -249,6 +250,7 @@ function ProfileModal({ visible, onClose }: { visible: boolean; onClose: () => v
         </ScrollView>
         </Pressable>
       </Pressable>
+      </KeyboardAvoidingView>
     </Modal>
   )
 }
@@ -261,6 +263,7 @@ const styles = StyleSheet.create({
   avatar: { width: 34, height: 34, borderRadius: 17, backgroundColor: colors.tealLight, alignItems: 'center', justifyContent: 'center' },
   avatarText: { color: colors.tealDark, fontSize: 11.5, fontWeight: '700' },
   title: { ...font.title, marginTop: 6 },
+  backdropWrap: { flex: 1 },
   backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.4)', justifyContent: 'center', padding: spacing.xl },
   sheet: { backgroundColor: colors.card, borderRadius: radius.card, padding: spacing.lg, maxHeight: '60%' },
   sheetTitle: { fontSize: 15, fontWeight: '700', color: colors.ink, marginBottom: spacing.sm },

@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
+import { KeyboardAvoidingView, Platform, RefreshControl, ScrollView, StyleSheet, View } from 'react-native'
 import { SafeAreaView } from 'react-native-safe-area-context'
 import ErrorBanner from './ErrorBanner'
 import Header from './Header'
@@ -38,9 +38,11 @@ export default function Screen({ title, children, scroll = true, onRefresh, refr
 
   return (
     <SafeAreaView style={styles.safe} edges={['top', 'left', 'right']}>
-      <Header title={title} />
-      {content}
-      {footer && <View style={styles.footer}>{footer}</View>}
+      <KeyboardAvoidingView style={styles.safe} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+        <Header title={title} />
+        {content}
+        {footer && <View style={styles.footer}>{footer}</View>}
+      </KeyboardAvoidingView>
     </SafeAreaView>
   )
 }
