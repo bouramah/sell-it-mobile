@@ -39,6 +39,12 @@
           "backgroundColor": "#f3f2ef"
         }
       ]
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "887304fb-4c52-41d5-a19c-55929af21bf3"
+      }
+    },
+    "owner": "cest_ibraa"
   }
 }
